@@ -1,10 +1,10 @@
-//Login Exceptions
+//----------------Login Exceptions--------------------------
 class WrongEmailOrPasswordAuthException implements Exception {
-
+  
 }
 //
 
-//Register Exceptions
+//-----------------Register Exceptions------------------------
 class UsedEmailAuthException implements Exception {
   
 }
@@ -19,7 +19,7 @@ class InvalidEmailAuthException implements Exception {
 
 //
 
-//Generic Exceptions
+//---------------------------Generic Exceptions----------------------
 class GenericAuthException implements Exception {
   
 }

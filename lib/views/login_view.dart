@@ -1,7 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:mynotes/constants/routes.dart';
+import 'package:mynotes/services/auth/auth_exceptions.dart';
+import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/utilities/show_error_dialog.dart';
 
 class LoginView extends StatefulWidget {
@@ -62,12 +63,12 @@ class _LoginViewState extends State<LoginView> {
                     final password = _password.text;
 
                     try {
-                         await FirebaseAuth.instance.signInWithEmailAndPassword(
-                          email: email,
-                          password: password
-                       );
-                        final user = FirebaseAuth.instance.currentUser;
-                       if (user?.emailVerified == true) {
+                         await AuthService.firebase().logIn(
+                             email: email,
+                             password: password
+                           );
+                        final user = AuthService.firebase().currentUser;
+                       if (user?.isEmailVerified == true) {
                          Navigator.of(context).pushNamedAndRemoveUntil(
                         notesRoute,
                          (route) => false
@@ -78,17 +79,12 @@ class _LoginViewState extends State<LoginView> {
       
                         );
                        }
-                       
-                      }on FirebaseAuthException catch (e) {
-                        if (e.code == "invalid-credential") {
-                           await showErrorDialog(context, "The email or password you entered is incorrect. Please try again.");
-                         }else{
-                          await showErrorDialog(context, "Error : ${e.code}");
-                         }
-                       }catch(e){
-                        await showErrorDialog(context, e.toString());
-                       }
-                   },//on pressed
+                      }on WrongEmailOrPasswordAuthException{
+                        await showErrorDialog(context, "The email or password you entered is incorrect. Please try again.");
+                      }on GenericAuthException{
+                        await showErrorDialog(context, "authentication error");
+                      }
+                  },//on pressed
                   child: const Text("Login"),
                    ),
                    TextButton(
@@ -98,8 +94,7 @@ class _LoginViewState extends State<LoginView> {
                        );
                     },                    
                      child: const Text("new here? register here")
-                    ),
-                    
+                    ),     
             ],
           ),
     );
