@@ -2,27 +2,103 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' show join;
 
-class DataBaseAlreadyOpenException implements Exception {
-  
-}
-class UnableToGetClassDirectory implements Exception {
-  
-}
+class DataBaseAlreadyOpen implements Exception {}
+class UnableToGetClassDirectory implements Exception {}
+class DataBaseAlreadyClose implements Exception {}
+class CouldNotDeleteUser implements Exception {}
+class UserAlreadyExists implements Exception {}
+class CouldNotFindUser implements Exception {}
+
 class NotesService {
   Database? _db;
 
+ 
+  Future<DataBaseUser> getUser({required  String email}) async {
+    final db = getDatabaseOrThrow();
+    final result = await db.query(
+      userTable,
+      limit: 1,
+      where: 'email = ?',
+      whereArgs: [email.toLowerCase()],
+    );
+    if (result.isEmpty) {
+      throw CouldNotFindUser();
+    }else{
+      return DataBaseUser.fromRow(result.first);
+    }
+  }
+
+  Future<DataBaseUser> createUser({required String email}) async{
+    final db = getDatabaseOrThrow();
+    final result = await db.query(
+      userTable,
+      limit: 1,
+      where: 'email = ?',
+      whereArgs: [email.toLowerCase()],
+    );
+
+    if (result.isNotEmpty) {
+      throw UserAlreadyExists();
+    }
+    final userId = await db.insert(userTable,{
+      emailColumn: email.toLowerCase(),
+    });
+
+    return DataBaseUser(id: userId,
+                        email: email
+          );
+  }
+
+  Future<void> deleteUser({required String email}) async {
+    final db = getDatabaseOrThrow();
+    final deletedCount = await db.delete(
+        userTable,
+        where: 'email = ?',
+        whereArgs: [email.toLowerCase()] 
+        );
+        if (deletedCount != 1) {
+          throw CouldNotDeleteUser();
+        }
+  }
+
+  Database getDatabaseOrThrow(){
+  final db = _db;
+  if (db == null) {
+    throw DataBaseAlreadyClose();
+  } else {
+    return db;
+  }
+}
+
+  Future<void> close() async{
+    final db = _db;
+    if (db == null) {
+     throw DataBaseAlreadyClose();
+   }else{
+    await db.close();
+    _db = null;
+   }
+
+  }
+  
   Future<void> open() async{
    if (_db != null) {
-     throw DataBaseAlreadyOpenException();
+     throw DataBaseAlreadyOpen();
    }
    try {
      final docsPath = await getApplicationDocumentsDirectory();
-     final path = join(docsPath.path, dbName);
-     
+     final dbPath = join(docsPath.path, dbName);
+     final db = await openDatabase(dbPath);
+     _db = db;
+     //// create user table/////
+      await  db.execute(createUserTable);
+       //// create note table/////
+      await  db.execute(createNoteTable);
    }on MissingPlatformDirectoryException{
      throw UnableToGetClassDirectory();
    }
   }
+
 }
 class DataBaseUser {
   final int id;
@@ -81,3 +157,21 @@ const emailColumn = 'email';
 const userIdColumn = 'user_id';
 const textColumn = 'text';
 const isSynchedWithCloudColumn = 'is_synched_with_cloud';
+
+const createUserTable = '''CREATE TABLE IF NOT EXISTS "user" (
+	                              "id"	INTEGER NOT NULL UNIQUE,
+	                              "email"	TEXT NOT NULL UNIQUE,
+	                              PRIMARY KEY("id")
+                                );
+                            ''';
+     
+     const createNoteTable = '''CREATE TABLE IF NOT EXISTS "note" (
+                                "id"	INTEGER NOT NULL,
+                                "user_id"	INTEGER NOT NULL,
+                                "text"	TEXT,
+                                "is_synched_with_cloud"	INTEGER NOT NULL DEFAULT 0,
+                                PRIMARY KEY("id"),
+                                FOREIGN KEY("user_id") REFERENCES "user"("id")
+                                );
+                             ''';
+     
