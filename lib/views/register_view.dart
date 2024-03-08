@@ -4,7 +4,7 @@ import 'package:mynotes/constants/routes.dart';
 import 'package:mynotes/services/auth/auth_exceptions.dart';
 import 'package:mynotes/services/auth/auth_service.dart';
 import 'package:mynotes/utilities/show_error_dialog.dart';
-
+ 
 class RegisterView extends StatefulWidget {
   const RegisterView({super.key});
 
@@ -64,7 +64,8 @@ class _RegisterViewState extends State<RegisterView> {
                       final password = _password.text;
                       try {
                         // ignore: non_constant_identifier_names
-                        await AuthService.firebase().createUser(email: email,
+                        await AuthService.firebase().createUser(
+                          email: email,
                          password: password
                          );
                          await AuthService.firebase().sendEmailVerification();
